@@ -1,19 +1,28 @@
 package com.technodev.capita.repository.implementation;
 
 import com.technodev.capita.domain.Role;
+import com.technodev.capita.exception.ApiException;
 import com.technodev.capita.repository.RoleRepository;
+import com.technodev.capita.rowmapper.RoleRowMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.Map;
+import java.util.Objects;
+
+import static com.technodev.capita.enumeration.RoleType.ROLE_USER;
+import static com.technodev.capita.query.RoleQuery.*;
 
 @Repository
 @RequiredArgsConstructor
 @Slf4j
 
 public class RoleRepositoryImpl implements RoleRepository<Role> {
+
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -44,7 +53,18 @@ public class RoleRepositoryImpl implements RoleRepository<Role> {
     }
 
     @Override
-    public void addRoleToUser(Long id, String roleName) {
+    public void addRoleToUser(Long userId, String name) {
+        log.info("Adding role {} to user id:{}", name , userId );
+        try{
+            Role role = jdbc.queryForObject(SELECT_ROLE_BY_NAME_QUERY , Map.of("name" , name ), new RoleRowMapper());
+
+            jdbc.update(INSERT_ROLE_TO_USER_QUERY, Map.of("userId",userId , "roleName", Objects.requireNonNull(role).getId()));
+
+        }catch (EmptyResultDataAccessException exception){
+            throw new ApiException("No role found by name :" + ROLE_USER.name());
+        }catch (Exception exception){
+            throw new ApiException("An error occured. Please try again .");
+        }
 
     }
 
