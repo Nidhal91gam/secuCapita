@@ -1,6 +1,7 @@
 package com.technodev.capita.repository;
 
 import com.technodev.capita.domain.User;
+import com.technodev.capita.dto.UserDTO;
 
 import java.util.Collection;
 
@@ -18,6 +19,10 @@ public interface UserRepository <T extends User> {
     Boolean delete(Long id);
 
     T getUserByEmail(String email);
+
+    void sendVerificationCode(UserDTO userDTO);
+
+    User verifyCode(String email, String code);
 
     /* more complex operation */
 
