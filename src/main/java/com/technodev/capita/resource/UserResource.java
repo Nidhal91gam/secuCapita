@@ -11,9 +11,11 @@ import com.technodev.capita.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -86,6 +88,21 @@ public class UserResource {
                         .message("User created")
                         .status(CREATED)
                         .statusCode(CREATED.value())
+                        .build()
+        );
+    }
+    @GetMapping("/profile")
+    public ResponseEntity<HttpResponse> profile(Authentication authentication){
+
+        UserDTO userDTO = userService.getUserByEmail(authentication.getName());
+        System.out.println(authentication.getPrincipal());
+        return ResponseEntity.ok().body(
+                HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .data(Map.of("user",userDTO))
+                        .message("Profile Retrieved")
+                        .status(OK)
+                        .statusCode(OK.value())
                         .build()
         );
     }

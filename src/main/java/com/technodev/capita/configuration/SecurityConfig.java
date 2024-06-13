@@ -1,6 +1,7 @@
 package com.technodev.capita.configuration;
 
 
+import com.technodev.capita.filter.CustomAuthorizationFilter;
 import com.technodev.capita.handler.CustomAccessDeniedHandler;
 import com.technodev.capita.handler.CustomAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -29,7 +31,8 @@ public class SecurityConfig {
     private final CustomAccessDeniedHandler customerAccessDeniedHandler;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final UserDetailsService userDetailsService;
-    private static final String[] PUBLIC_URLS = {"user/login/**", "user/register/**" ,"/user/verify/code/**"};
+    private final CustomAuthorizationFilter customAuthorizationFilter;
+    private static final String[] PUBLIC_URLS = {"user/login/**", "user/register/**" ,"/user/verify/code/**","/user/profile"};
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
@@ -49,6 +52,8 @@ public class SecurityConfig {
         http.exceptionHandling(exception-> exception.accessDeniedHandler(customerAccessDeniedHandler).authenticationEntryPoint(customAuthenticationEntryPoint));
 
         http.authorizeHttpRequests( auth -> auth.anyRequest().authenticated() );
+
+        http.addFilterBefore(customAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
