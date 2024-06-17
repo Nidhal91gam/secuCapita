@@ -4,6 +4,7 @@ import com.technodev.capita.domain.Role;
 import com.technodev.capita.domain.User;
 import com.technodev.capita.domain.UserPrincipale;
 import com.technodev.capita.dto.UserDTO;
+import com.technodev.capita.enumeration.VerifiacationType;
 import com.technodev.capita.exception.ApiException;
 import com.technodev.capita.repository.RoleRepository;
 import com.technodev.capita.repository.UserRepository;
@@ -31,6 +32,7 @@ import java.util.*;
 
 import static com.technodev.capita.enumeration.RoleType.ROLE_USER;
 import static com.technodev.capita.enumeration.VerifiacationType.ACCOUNT;
+import static com.technodev.capita.enumeration.VerifiacationType.PASSWORD;
 import static com.technodev.capita.query.UserQuery.*;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.commons.lang3.time.DateUtils.addDays;
@@ -177,6 +179,63 @@ public class UserRepositoryImpl implements UserRepository<User> , UserDetailsSer
         } catch (EmptyResultDataAccessException exception) {
             throw new ApiException("Cound Not find record");
         } catch (Exception exception) {
+            throw new ApiException("An error occurred. Please try again");
+        }
+    }
+
+    @Override
+    public void resetPassword(String email) {
+        if (getEmailCount(email.trim().toLowerCase()) <= 0) throw new ApiException("There is no account for this email address. ");
+        try {
+                String expirationDate = DateFormatUtils.format(addDays(new Date(), 1), DATE_FORMAT);
+                User user = getUserByEmail(email);
+                String verificationUrl = getverificationUrl(UUID.randomUUID().toString(), PASSWORD.getType());
+                jdbc.update(DELETE_PASSWORD_VERIFICATION_BY_USER_ID_QUERY, Map.of("userId", user.getId()));
+                jdbc.update(INSERT_PASSWORD_VERIFICATION_QUERY, Map.of("userId", user.getId(), "url", verificationUrl, "expirationDate", expirationDate));
+                // TODO send email with url to user
+                log.info("Verification URL :  {} ", verificationUrl);
+        } catch (EmptyResultDataAccessException exception) {
+            throw new ApiException("this code is not valid. Please login again");
+
+        }
+    }
+
+    @Override
+    public User verifyPasswordKey(String key) {
+        if(isLinkExpired(key,PASSWORD)) throw new ApiException("this link has expired. Please reset your password again.");
+        try {
+            User user = jdbc.queryForObject(SELECT_USER_BY_PASSWORD_URL_QUERY, Map.of("url" , getverificationUrl(key, PASSWORD.getType())), new UserRowMapper());
+            //jdbc.update(DELETE_USER_FROM_PASSWORD_VERIFICATION_QUERY,Map.of("id",user.getId()));// depends on use case / developper or business
+            return user;
+        } catch (EmptyResultDataAccessException exception) {
+            log.error(exception.getMessage());
+            throw new ApiException("This link is not valid. Please reset your password again");
+        } catch (Exception exception) {
+            log.error(exception.getMessage());
+            throw new ApiException("An error occurred. Please try again");
+        }
+    }
+
+    @Override
+    public void renewPassword(String key, String password, String confirmPassword) {
+        if (!password.equals(confirmPassword)) throw new ApiException("Password don't match. Please try again.");
+        try {
+            jdbc.update(UPDATE_USER_PASSWORD_BY_URL_QUERY, Map.of("password", encoder.encode(password) ,"url" ,getverificationUrl(key, PASSWORD.getType())));
+            jdbc.update(DELETE_VERIFICATION_BY_URL_QUERY, Map.of("url" ,getverificationUrl(key, PASSWORD.getType())));
+        } catch (EmptyResultDataAccessException exception) {
+            log.error(exception.getMessage());
+            throw new ApiException("An error occurred. Please try again");
+        }
+    }
+
+    private boolean isLinkExpired(String key, VerifiacationType password) {
+        try {
+            return jdbc.queryForObject(SELECT_EXPIRATION_BY_URL, Map.of("url" , getverificationUrl(key, password.getType())), Boolean.class);
+        } catch (EmptyResultDataAccessException exception) {
+            log.error(exception.getMessage());
+            throw new ApiException("This link is not valid. Please reset your password again");
+        } catch (Exception exception) {
+            log.error(exception.getMessage());
             throw new ApiException("An error occurred. Please try again");
         }
     }

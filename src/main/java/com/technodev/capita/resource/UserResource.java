@@ -41,19 +41,29 @@ public class UserResource {
     private final HttpServletRequest request;
     private final HttpServletResponse response;
 
+    @PostMapping("/register")
+    public ResponseEntity<HttpResponse> saveUser(@RequestBody @Valid User user){
+        UserDTO userDTO = userService.createUser(user);
+        return ResponseEntity.created(getUri()).body(
+                HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .data(Map.of("user",userDTO))
+                        .message("User created")
+                        .status(CREATED)
+                        .statusCode(CREATED.value())
+                        .build());
+    }
+
     @PostMapping("/login")
     public ResponseEntity<HttpResponse> login(@RequestBody @Valid LoginForm loginForm){
-
         authenticationManager.authenticate(unauthenticated(loginForm.getEmail() , loginForm.getPassword()));
         Authentication authentication = authenticate(loginForm.getEmail(), loginForm.getPassword());
         UserDTO userDTO= getAuthenticatedUser(authentication);
-
         //System.out.println(authentication);
         //System.out.println(((UserPrincipale) authentication.getPrincipal()).getUser());
-
         return userDTO.isUsingMfa() ? sendVerificationCode(userDTO) : sendResponse(userDTO);
-
     }
+
     private UserDTO getAuthenticatedUser(Authentication authentication){
         return ((UserPrincipale) authentication.getPrincipal()).getUser();
     }
@@ -66,9 +76,10 @@ public class UserResource {
             processError(request ,response, exception);
             throw new ApiException(exception.getMessage());
         }
-
     }
-
+    private UserPrincipale getUserPrincipal(UserDTO userDTO) {
+        return new UserPrincipale(toUser(userService.getUserByEmail(userDTO.getEmail())), roleService.getRoleByUserId(userDTO.getId()));
+    }
     private ResponseEntity<HttpResponse> sendResponse(UserDTO userDTO) {
         return ResponseEntity.ok().body(
 
@@ -83,21 +94,6 @@ public class UserResource {
                         .build()
         );
     }
-    @RequestMapping("/error")
-    private ResponseEntity<HttpResponse> handleError(HttpServletRequest request) {
-        return ResponseEntity.badRequest().body(
-                HttpResponse.builder()
-                        .timeStamp(now().toString())
-                        .reason("There is no mapping for a " + request.getMethod() + " request for this path on the server")
-                        .status(BAD_REQUEST)
-                        .statusCode(BAD_REQUEST.value())
-                        .build()
-        );
-    }
-    private UserPrincipale getUserPrincipal(UserDTO userDTO) {
-        return new UserPrincipale(toUser(userService.getUserByEmail(userDTO.getEmail())), roleService.getRoleByUserId(userDTO.getId()));
-    }
-
     private ResponseEntity<HttpResponse> sendVerificationCode(UserDTO userDTO) {
         userService.sendVerificationCode(userDTO);
         return ResponseEntity.ok().body(
@@ -107,28 +103,14 @@ public class UserResource {
                         .message("Verification Code Sent")
                         .status(OK)
                         .statusCode(OK.value())
-                        .build()
-        );
+                        .build());
     }
-    @PostMapping("/register")
-    public ResponseEntity<HttpResponse> saveUser(@RequestBody @Valid User user){
-
-        UserDTO userDTO = userService.createUser(user);
-
-        return ResponseEntity.created(getUri()).body(
-
-                HttpResponse.builder()
-                        .timeStamp(now().toString())
-                        .data(Map.of("user",userDTO))
-                        .message("User created")
-                        .status(CREATED)
-                        .statusCode(CREATED.value())
-                        .build()
-        );
+    private URI getUri() {
+        return URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/user/get/<userId>").toUriString());
     }
+
     @GetMapping("/profile")
     public ResponseEntity<HttpResponse> profile(Authentication authentication){
-
         UserDTO userDTO = userService.getUserByEmail(authentication.getName());
         System.out.println(authentication);
         return ResponseEntity.ok().body(
@@ -136,6 +118,33 @@ public class UserResource {
                         .timeStamp(now().toString())
                         .data(Map.of("user",userDTO))
                         .message("Profile Retrieved")
+                        .status(OK)
+                        .statusCode(OK.value())
+                        .build()
+        );
+    }
+
+    // START - To reset password when user is not logged in
+    @GetMapping("/resetpassword/{email}")
+    public ResponseEntity<HttpResponse> resetPassword(@PathVariable(name = "email") String email){
+        userService.resetPassword(email);
+        return ResponseEntity.ok().body(
+                HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .message("Email sent. Please check your email to reset your password")
+                        .status(OK)
+                        .statusCode(OK.value())
+                        .build()
+        );
+    }
+    @GetMapping("/verify/password/{key}")
+    public ResponseEntity<HttpResponse> verifyPasswordUrl(@PathVariable(name = "key") String key){
+        UserDTO userDTO = userService.verifyPasswordKey(key);
+        return ResponseEntity.ok().body(
+                HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .data(Map.of("user", userDTO))
+                        .message("Please enter a new password")
                         .status(OK)
                         .statusCode(OK.value())
                         .build()
@@ -159,9 +168,38 @@ public class UserResource {
                         .build()
         );
     }
-    private URI getUri() {
-        return URI.create(ServletUriComponentsBuilder.fromCurrentContextPath().path("/user/get/<userId>").toUriString());
+
+    @PostMapping("/resetpassword/{key}/{password}/{confirmPassword}")
+    public ResponseEntity<HttpResponse> resetPasswordWithKey (@PathVariable(name = "key") String key , @PathVariable(name = "password") String password,
+                                                          @PathVariable(name = "confirmPassword") String confirmPassword){
+        userService.renewPassword(key, password,confirmPassword );
+        return ResponseEntity.ok().body(
+                HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .message("Password reset successfully")
+                        .status(OK)
+                        .statusCode(OK.value())
+                        .build()
+        );
     }
+
+
+    // END - To reset password when user is not logged in
+
+    @RequestMapping("/error")
+    private ResponseEntity<HttpResponse> handleError(HttpServletRequest request) {
+        return ResponseEntity.badRequest().body(
+                HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .reason("There is no mapping for a " + request.getMethod() + " request for this path on the server")
+                        .status(BAD_REQUEST)
+                        .statusCode(BAD_REQUEST.value())
+                        .build()
+        );
+    }
+
+
+
 
 
 }
