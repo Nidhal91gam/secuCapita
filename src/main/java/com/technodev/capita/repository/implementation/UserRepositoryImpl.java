@@ -128,7 +128,7 @@ public class UserRepositoryImpl implements UserRepository<User> , UserDetailsSer
 
         } else {
             log.info("User found in database : {} ", email);
-            return new UserPrincipale(user, roleRepository.getRoleByUserId(user.getId()).getPermission());
+            return new UserPrincipale(user, roleRepository.getRoleByUserId(user.getId()));
         }
     }
 
