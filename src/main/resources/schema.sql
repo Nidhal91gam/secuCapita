@@ -69,7 +69,7 @@ CREATE TABLE UserEvents
     FOREIGN KEY (event_id) REFERENCES Events (id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
-DROP TABLE IF EXISTS AccountVerifications;
+#DROP TABLE IF EXISTS AccountVerifications;
 CREATE TABLE AccountVerifications
 (
     id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

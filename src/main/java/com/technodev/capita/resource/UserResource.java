@@ -125,6 +125,7 @@ public class UserResource {
     }
 
     // START - To reset password when user is not logged in
+
     @GetMapping("/resetpassword/{email}")
     public ResponseEntity<HttpResponse> resetPassword(@PathVariable(name = "email") String email){
         userService.resetPassword(email);
@@ -186,6 +187,20 @@ public class UserResource {
 
     // END - To reset password when user is not logged in
 
+    @GetMapping("/verify/account/{key}")
+    public ResponseEntity<HttpResponse> verifyAccount (@PathVariable(name = "key") String key){
+
+        return ResponseEntity.ok().body(
+
+                HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .message(userService.verifyAccountKey(key).isEnable() ? "Account already verified" : "Account verified")
+                        .status(OK)
+                        .statusCode(OK.value())
+                        .build()
+        );
+    }
+
     @RequestMapping("/error")
     private ResponseEntity<HttpResponse> handleError(HttpServletRequest request) {
         return ResponseEntity.badRequest().body(
@@ -197,6 +212,15 @@ public class UserResource {
                         .build()
         );
     }
+   /* @RequestMapping("/error")
+    private ResponseEntity<HttpResponse> handleError1(HttpServletRequest request) {
+        return new ResponseEntity<>(HttpResponse.builder()
+                        .timeStamp(now().toString())
+                        .reason("There is no mapping for a " + request.getMethod() + " request for this path on the server")
+                        .status(NOT_FOUND)
+                        .statusCode(NOT_FOUND.value())
+                        .build(),NO_CONTENT);
+    }*/
 
 
 

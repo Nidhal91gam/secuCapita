@@ -54,7 +54,7 @@ public class RoleRepositoryImpl implements RoleRepository<Role> {
 
     @Override
     public void addRoleToUser(Long userId, String roleName) {
-        log.info("Adding role {} to user id:{}", roleName , userId );
+        log.info("Adding role {} to user id : {}", roleName , userId );
         try{
             Role role = jdbc.queryForObject(SELECT_ROLE_BY_NAME_QUERY , Map.of("name" , roleName ), new RoleRowMapper());
 
