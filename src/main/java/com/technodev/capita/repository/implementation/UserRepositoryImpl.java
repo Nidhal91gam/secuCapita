@@ -8,12 +8,11 @@ import com.technodev.capita.enumeration.VerifiacationType;
 import com.technodev.capita.exception.ApiException;
 import com.technodev.capita.repository.RoleRepository;
 import com.technodev.capita.repository.UserRepository;
-
 import com.technodev.capita.rowmapper.UserRowMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
-
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -24,10 +23,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import org.apache.commons.lang3.time.DateFormatUtils;
 import java.util.*;
 
 import static com.technodev.capita.enumeration.RoleType.ROLE_USER;
@@ -47,7 +44,6 @@ public class UserRepositoryImpl implements UserRepository<User> , UserDetailsSer
     private static final String DATE_FORMAT = "yyyy-MM-dd hh:mm:ss";
     private final NamedParameterJdbcTemplate jdbc;
     private final RoleRepository<Role> roleRepository;
-
     private final BCryptPasswordEncoder encoder;
 
     @Override
